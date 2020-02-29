@@ -15,7 +15,7 @@ fi
 ### FUNCTIONS
 ### ============================================================================
 function replace_version_var {
-    if [ $3 ]; then
+    if [ $3 == 1 ]; then
         # Quotes
         sed -i "s/^${1} = \"\"/${1} = \"${2}\"/" "src/${PACKAGE_PYTHON_NAME}/_version.py"
     else
@@ -47,7 +47,7 @@ replace_version_var BUILD_VERSION "${BUILD_VERSION}" 1
 replace_version_var BUILD_GIT_HASH "${GIT_COMMIT}" 1
 replace_version_var BUILD_GIT_HASH_SHORT "${GIT_COMMIT_SHORT}" 1
 replace_version_var BUILD_GIT_BRANCH "${GIT_BRANCH}" 1
-replace_version_var BUILD_TIMESTAMP "${BUILD_TIMESTAMP}" 1
+replace_version_var BUILD_TIMESTAMP "${BUILD_TIMESTAMP}" 0
 replace_version_var BUILD_DATETIME "${BUILD_DATETIME}" 0
 
 head -n 22 "src/${PACKAGE_PYTHON_NAME}/_version.py" | tail -n 7
