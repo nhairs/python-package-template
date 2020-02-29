@@ -3,7 +3,7 @@
 ### CONSTANTS
 ### ============================================================================
 BUILD_TIMESTAMP=$(date +%s)
-BUILD_DATETIME="datetime.utcfromtimestamp(${BUILD_TIMESTAMP})"
+BUILD_DATETIME="datetime.datetime.utcfromtimestamp(${BUILD_TIMESTAMP})"
 PACKAGE_VERSION=$(grep '^PACKAGE_VERSION' setup.py | cut -d '"' -f 2)
 
 if [[ "$GIT_BRANCH" == "master" ]]; then
@@ -58,6 +58,8 @@ if [ "$PYTHON_PACKAGE_REPOSITORY" == "testpypi" ]; then
     # https://packaging.python.org/tutorials/packaging-projects/#creating-setup-py
     sed -i "s/^PACKAGE_NAME = .*/PACKAGE_NAME = \"${PACKAGE_NAME}-${TESTPYPI_USERNAME}\"/" setup.py
     grep "^PACKAGE_NAME = " setup.py
+
+    mv "src/${PACKAGE_PYTHON_NAME}" "src/${PACKAGE_PYTHON_NAME}_$(echo -n $TESTPYPI_USERNAME | tr '-' '_')"
 fi
 
 ## Build
