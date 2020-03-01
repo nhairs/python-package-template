@@ -92,6 +92,15 @@ PACKAGE_EXTRA_DEPENDENCIES = {}
 #   - https://setuptools.readthedocs.io/en/latest/setuptools.html#including-data-files
 INCLUDE_PACKAGE_DATA = None
 
+# Use the following to indicate typing
+# See also:
+#   - https://www.python.org/dev/peps/pep-0561/#packaging-type-information
+
+# INCLUDE_PACKAGE_DATA = {
+#     PACKAGE_NAME: ["py.typed"],
+# }
+
+
 PACKAGE_DATA_FILES = None
 
 EXCLUDE_PACKAGE_DATA = None
