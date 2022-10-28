@@ -16,14 +16,26 @@ GIT_COMMIT=$(git rev-parse HEAD)
 GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 PACKAGE_NAME=$(grep 'PACKAGE_NAME =' setup.py | cut -d '=' -f 2 | tr -d ' ' | tr -d '"')
 PACKAGE_PYTHON_NAME=$(echo -n "$PACKAGE_NAME" | tr '-' '_')
+PACKAGE_VERSION=$(grep '^PACKAGE_VERSION' setup.py | cut -d '"' -f 2)
 
 AUTOCLEAN_LIMIT=10
 
 # Notation Reference: https://unix.stackexchange.com/questions/122845/using-a-b-for-variable-assignment-in-scripts#comment685330_122848
 : ${CI:=0}  # Flag for if we are in CI - default to not.
 
-PYTHON_PACKAGE_REPOSITORY="testpypi"
+PYTHON_PACKAGE_REPOSITORY="pypi"
 TESTPYPI_USERNAME="nhairs-test"
+
+
+## Build related
+BUILD_TIMESTAMP=$(date +%s)
+
+if [[ "$GIT_BRANCH" == "master" || "$GIT_BRANCH" == "main" ]]; then
+    BUILD_VERSION="${PACKAGE_VERSION}"
+else
+    BUILD_VERSION="${PACKAGE_VERSION}+${GIT_COMMIT_SHORT}.${BUILD_TIMESTAMP}"
+fi
+
 
 ### FUNCTIONS
 ### ============================================================================
@@ -40,6 +52,7 @@ function docker_build {
         --file "lib/${1}" \
         --build-arg "PACKAGE_NAME=${PACKAGE_NAME}" \
         --build-arg "PACKAGE_PYTHON_NAME=${PACKAGE_PYTHON_NAME}" \
+        --build-arg "PACKAGE_VERSION=${PACKAGE_VERSION}" \
         --build-arg "GIT_COMMIT_SHORT=${GIT_COMMIT_SHORT}" \
         --build-arg "GIT_COMMIT=${GIT_COMMIT}" \
         --build-arg "GIT_BRANCH=${GIT_BRANCH}" \
@@ -47,6 +60,8 @@ function docker_build {
         --build-arg "TESTPYPI_USERNAME=${TESTPYPI_USERNAME}" \
         --build-arg "SOURCE_UID=${SOURCE_UID}" \
         --build-arg "SOURCE_GID=${SOURCE_GID}" \
+        --build-arg "BUILD_TIMESTAMP=${BUILD_TIMESTAMP}" \
+        --build-arg "BUILD_VERSION=${BUILD_VERSION}" \
         --tag "$(get_docker_tag "$2")" \
         .
 }
@@ -59,13 +74,26 @@ function docker_run {
         "$(get_docker_tag "$1")"
 }
 
-function docker_run_build {
+function docker_run_dist_only {
     # Specialised function for build
-    # mounts only dist instead of .
+    # mounts only $BUILD_DIR instead of .
     echo "🐋 running $1"
+    echo "BUILD_DIR=${BUILD_DIR}"
     docker run --rm \
         --name "$(get_docker_tag "$1" | tr ":" "-")" \
-        --volume "$(pwd)/dist:/srv/dist" \
+        --volume "$(pwd)/${BUILD_DIR}:/srv/dist" \
+        "$(get_docker_tag "$1")"
+}
+
+function docker_run_test {
+    # Specialised function for test
+    echo "🐋 running $1"
+    echo "BUILD_DIR=${BUILD_DIR}"
+    docker run --rm \
+        --name "$(get_docker_tag "$1" | tr ":" "-")" \
+        --volume "$(pwd)/${BUILD_DIR}:/srv/dist" \
+        --volume "$(pwd)/tests:/srv/tests" \
+        --volume "$(pwd)/tox.ini:/srv/tox.ini" \
         "$(get_docker_tag "$1")"
 }
 
@@ -87,6 +115,7 @@ function docker_clean {
         docker images | grep "$PACKAGE_NAME" | awk '{OFS=":"} {print $1, $2}' | xargs docker rmi
     fi
 }
+
 
 function docker_clean_unused {
     docker images | \
@@ -128,6 +157,28 @@ function check_file {
     fi
 }
 
+## Command Functions
+## -----------------------------------------------------------------------------
+function command_build {
+    if [ -z $1 ] | [ "$1" = "dist" ]; then
+        BUILD_DIR="dist"
+    elif [ "$1" = "tmp" ]; then
+        BUILD_DIR=".dist.tmp"
+    else
+        return 1
+    fi
+
+    # TODO: unstashed changed guard
+    if [ ! -d $BUILD_DIR ]; then
+        heading "setup 📜"
+        mkdir $BUILD_DIR
+    fi
+
+    heading "build 🐍"
+    docker_build "python/build/build.Dockerfile" build
+    docker_run_dist_only build
+}
+
 ### MAIN
 ### ============================================================================
 case $1 in
@@ -159,26 +210,18 @@ case $1 in
         ;;
 
     "test")
-        heading "pytest 🐍"
-        docker_build "python/test/pytest.Dockerfile" test-pytest
-        docker_run test-pytest
+        command_build tmp
 
         heading "tox 🐍"
         docker_build "python/test/tox.Dockerfile" test-tox
-        docker_run test-tox
+        docker_run_test test-tox
+
+        rm -rf .dist.tmp/*
 
         ;;
 
     "build")
-        # TODO: unstashed changed guard
-        if [ ! -d dist ]; then
-            heading "setup 📜"
-            mkdir dist
-        fi
-
-        heading "build 🐍"
-        docker_build "python/build/build.Dockerfile" build
-        docker_run_build build
+        command_build dist
         ;;
 
     "upload")
@@ -217,12 +260,16 @@ case $1 in
         echo "🐍 remove build artifacts"
         rm -rf build dist "src/${PACKAGE_PYTHON_NAME}.egg-info"
 
+        echo "cleaning .dist.tmp"
+        rm -rf .dist.tmp/*
+
         ;;
 
     "debug")
         heading "Debug 📜"
         echo "PACKAGE_NAME=${PACKAGE_NAME}"
         echo "PACKAGE_PYTHON_NAME=${PACKAGE_PYTHON_NAME}"
+        echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
         echo "GIT_COMMIT_SHORT=${GIT_COMMIT_SHORT}"
         echo "GIT_COMMIT=${GIT_COMMIT}"
         echo "GIT_BRANCH=${GIT_BRANCH}"
@@ -230,6 +277,8 @@ case $1 in
         echo "TESTPYPI_USERNAME=${TESTPYPI_USERNAME}"
         echo "SOURCE_UID=${SOURCE_UID}"
         echo "SOURCE_GID=${SOURCE_GID}"
+        echo "BUILD_TIMESTAMP=${BUILD_TIMESTAMP}"
+        echo "BUILD_VERSION=${BUILD_VERSION}"
         echo
         echo "Checking Directory Layout..."
         check_file "src/${PACKAGE_PYTHON_NAME}/__init__.py"
