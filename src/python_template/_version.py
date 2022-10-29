@@ -19,7 +19,7 @@ BUILD_GIT_HASH = ""
 BUILD_GIT_HASH_SHORT = ""
 BUILD_GIT_BRANCH = ""
 BUILD_TIMESTAMP = ""
-BUILD_DATETIME = datetime.datetime(1970,1,1)
+BUILD_DATETIME = datetime.datetime(1970, 1, 1)
 
 VERSION_VARS = vars()  # Don't have f-strings until py36
 
