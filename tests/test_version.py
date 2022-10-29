@@ -1,8 +1,9 @@
+# pylint: disable=missing-function-docstring
+
 ### IMPORTS
 ### ============================================================================
 ## Standard Library
 import datetime
-import re
 
 ## Installed
 
