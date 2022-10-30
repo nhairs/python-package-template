@@ -34,7 +34,12 @@ BUILD_TIMESTAMP=$(date +%s)
 if [[ "$GIT_BRANCH" == "master" || "$GIT_BRANCH" == "main" ]]; then
     BUILD_VERSION="${PACKAGE_VERSION}"
 else
-    BUILD_VERSION="${PACKAGE_VERSION}+${GIT_COMMIT_SHORT}.${BUILD_TIMESTAMP}"
+    # Tox doesn't like version labes like
+    # python_template-0.0.0+3f2d02f.1667158525-py3-none-any.whl
+    #BUILD_VERSION="${PACKAGE_VERSION}+${GIT_COMMIT_SHORT}.${BUILD_TIMESTAMP}"
+
+    # Use PEP 440 non-compliant versions since we know it works
+    BUILD_VERSION="${PACKAGE_VERSION}.${GIT_COMMIT_SHORT}"
 fi
 
 ## Insert into .tmp/env
@@ -67,54 +72,6 @@ cp .tmp/env .env
 ### ============================================================================
 ## Docker Functions
 ## -----------------------------------------------------------------------------
-function get_docker_tag {
-    echo -n "${PACKAGE_NAME}-${1}:${GIT_COMMIT}"
-}
-
-function docker_build {
-    echo "🐋 Building $2"
-    docker build \
-        --quiet \
-        --file "lib/${1}" \
-        --build-arg "PACKAGE_NAME=${PACKAGE_NAME}" \
-        --build-arg "PACKAGE_PYTHON_NAME=${PACKAGE_PYTHON_NAME}" \
-        --build-arg "PACKAGE_VERSION=${PACKAGE_VERSION}" \
-        --build-arg "GIT_COMMIT_SHORT=${GIT_COMMIT_SHORT}" \
-        --build-arg "GIT_COMMIT=${GIT_COMMIT}" \
-        --build-arg "GIT_BRANCH=${GIT_BRANCH}" \
-        --build-arg "PYTHON_PACKAGE_REPOSITORY=${PYTHON_PACKAGE_REPOSITORY}" \
-        --build-arg "TESTPYPI_USERNAME=${TESTPYPI_USERNAME}" \
-        --build-arg "SOURCE_UID=${SOURCE_UID}" \
-        --build-arg "SOURCE_GID=${SOURCE_GID}" \
-        --build-arg "BUILD_TIMESTAMP=${BUILD_TIMESTAMP}" \
-        --build-arg "BUILD_VERSION=${BUILD_VERSION}" \
-        --tag "$(get_docker_tag "$2")" \
-        .
-}
-
-function docker_run_dist_only {
-    # Specialised function for build
-    # mounts only $BUILD_DIR instead of .
-    echo "🐋 running $1"
-    echo "BUILD_DIR=${BUILD_DIR}"
-    docker run --rm \
-        --name "$(get_docker_tag "$1" | tr ":" "-")" \
-        --volume "$(pwd)/${BUILD_DIR}:/srv/dist" \
-        "$(get_docker_tag "$1")"
-}
-
-function docker_run_test {
-    # Specialised function for test
-    echo "🐋 running $1"
-    echo "BUILD_DIR=${BUILD_DIR}"
-    docker run --rm \
-        --name "$(get_docker_tag "$1" | tr ":" "-")" \
-        --volume "$(pwd)/${BUILD_DIR}:/srv/dist" \
-        --volume "$(pwd)/tests:/srv/tests" \
-        --volume "$(pwd)/tox.ini:/srv/tox.ini" \
-        "$(get_docker_tag "$1")"
-}
-
 function compose_build {
     echo "🐋 Building $1"
     docker-compose build $1 1>/dev/null
@@ -200,8 +157,8 @@ function command_build {
     echo "BUILD_DIR=${BUILD_DIR}" >> .tmp/env
 
     heading "build 🐍"
-    docker_build "python/build/build.Dockerfile" build
-    docker_run_dist_only build
+    compose_build python-build
+    compose_run python-build
 }
 
 ### MAIN

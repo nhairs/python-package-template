@@ -11,7 +11,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
 RUN apt update && apt upgrade --yes \
- && apt install --yes software-properties-common \
+ && apt install --yes software-properties-common wget \
  && add-apt-repository ppa:deadsnakes/ppa \
  && apt update
 
@@ -24,7 +24,6 @@ RUN apt install --yes \
     python3.11 python3.11-dev python3.11-distutils
 
 ## pypy
-RUN apt install --yes wget
 ADD lib/python/install_pypy.sh /tmp
 RUN /tmp/install_pypy.sh
 
