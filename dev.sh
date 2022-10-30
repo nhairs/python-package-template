@@ -190,10 +190,14 @@ function command_build {
     fi
 
     # TODO: unstashed changed guard
+
     if [ ! -d $BUILD_DIR ]; then
         heading "setup 📜"
         mkdir $BUILD_DIR
     fi
+
+    echo "BUILD_DIR=${BUILD_DIR}" >> .env
+    echo "BUILD_DIR=${BUILD_DIR}" >> .tmp/env
 
     heading "build 🐍"
     docker_build "python/build/build.Dockerfile" build
@@ -239,10 +243,21 @@ case $1 in
         command_build tmp
 
         heading "tox 🐍"
-        docker_build "python/test/tox.Dockerfile" test-tox
-        docker_run_test test-tox
+        compose_build python-tox
+        compose_run python-tox tox -e py37
 
-        rm -rf .dist.tmp/*
+        rm -rf .tmp/dist/*
+
+        ;;
+
+    "test-full")
+        command_build tmp
+
+        heading "tox 🐍"
+        compose_build python-tox
+        compose_run python-tox tox
+
+        rm -rf .tmp/dist/*
 
         ;;
 
