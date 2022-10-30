@@ -85,20 +85,33 @@ PACKAGE_ENTRY_POINTS = None
 # Extra dependencies
 # See also:
 #   - https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
-PACKAGE_EXTRA_DEPENDENCIES = {}
+PACKAGE_EXTRA_DEPENDENCIES = {
+    "dev": [  # Centralise dev dependencies
+        ## Building Python Package
+        "setuptools",
+        "wheel",
+        ## Formatting / Linting
+        "black",
+        "pylint",
+        "mypy",
+        ## Testing
+        "pytest",
+        ## Docs
+        "mkdocs",
+        "mkdocs-material>=8.5",
+        "mkdocs-awesome-pages-plugin",
+        "mdx_truly_sane_lists",
+    ],
+}
 
 # Include package data.
 # See also:
 #   - https://setuptools.readthedocs.io/en/latest/setuptools.html#including-data-files
-INCLUDE_PACKAGE_DATA = None
-
-# Use the following to indicate typing
-# See also:
 #   - https://www.python.org/dev/peps/pep-0561/#packaging-type-information
 
-# INCLUDE_PACKAGE_DATA = {
-#     PACKAGE_NAME: ["py.typed"],
-# }
+INCLUDE_PACKAGE_DATA = {
+    PACKAGE_NAME: ["py.typed"],
+}
 
 
 PACKAGE_DATA_FILES = None
@@ -203,7 +216,6 @@ FIND_PACKAGES_INCLUDE = [PACKAGE_PYTHON_NAME, PACKAGE_PYTHON_NAME + ".*"]
 #   - https://packaging.python.org/specifications/core-metadata/#download-url
 PACKAGE_DOWNLOAD_URL = None
 
-
 ## Internal Constants - DO NOT EDIT
 ## -----------------------------------------------------------------------------
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -265,7 +277,7 @@ if PACKAGE_ENTRY_POINTS:
     setup_extra_kwargs["entry_points"] = PACKAGE_ENTRY_POINTS
 
 if PACKAGE_EXTRA_DEPENDENCIES:
-    setup_extra_kwargs["extra_requires"] = PACKAGE_EXTRA_DEPENDENCIES
+    setup_extra_kwargs["extras_require"] = PACKAGE_EXTRA_DEPENDENCIES
 
 if INCLUDE_PACKAGE_DATA is not None:
     setup_extra_kwargs["package_data"] = INCLUDE_PACKAGE_DATA
