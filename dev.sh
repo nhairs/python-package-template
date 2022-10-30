@@ -117,7 +117,7 @@ function docker_run_test {
 
 function compose_build {
     echo "🐋 Building $1"
-    docker-compose build $1 #1>/dev/null
+    docker-compose build $1 1>/dev/null
     echo
 }
 
@@ -228,7 +228,7 @@ case $1 in
             black --line-length 100 --target-version py37 --check --diff setup.py src tests
 
         heading "pylint 🐍"
-        compose_run python-common pylint setup.py src tests
+        compose_run python-common pylint --output-format=colorized setup.py src tests
 
         heading "mypy 🐍"
         compose_run python-common mypy src tests
