@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z "$1" ]; then
-    echo "must provide target dir"
+    echo "You must provide a target directory"
     exit 1
 fi
 
@@ -9,8 +9,31 @@ TARGET=$1
 
 echo "Copying into ${TARGET}"
 
-FILES_TO_COPY="dev.sh .dockerignore .gitignore lib pylintrc setup.py src tests"
+FILES_TO_COPY="\
+    dev.sh \
+    docker-compose.yml \
+    .dockerignore \
+    .gitignore \
+    lib \
+    mypy.ini \
+    pylintrc \
+    setup.py \
+    src \
+    tests \
+    tox.ini \
+    "
 
 for FILE in $FILES_TO_COPY; do
+    echo "Copying ${FILE}"
     cp -r "${FILE}" "${TARGET}/"
 done
+
+echo "Writing ${TARGET}/NOTICE"
+cat > "${TARGET}/NOTICE" << EOF
+This software includes the following licenced software:
+  - python-package-template
+    Copyright (c) 2020 Nicholas Hairs
+    Licenced under The MIT Licence
+    Source: https://github.com/nhairs/python-package-template
+
+EOF

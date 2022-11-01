@@ -7,6 +7,10 @@
 ### ============================================================================
 set -e  # Bail at the first sign of trouble
 
+# Notation Reference: https://unix.stackexchange.com/questions/122845/using-a-b-for-variable-assignment-in-scripts#comment685330_122848
+: ${DEBUG:=0}
+: ${CI:=0}  # Flag for if we are in CI - default to not.
+
 ### CONTANTS
 ### ============================================================================
 SOURCE_UID=$(id -u)
@@ -19,14 +23,10 @@ PACKAGE_NAME=$(grep 'PACKAGE_NAME =' setup.py | cut -d '=' -f 2 | tr -d ' ' | tr
 PACKAGE_PYTHON_NAME=$(echo -n "$PACKAGE_NAME" | tr '-' '_')
 PACKAGE_VERSION=$(grep '^PACKAGE_VERSION' setup.py | cut -d '"' -f 2)
 
-AUTOCLEAN_LIMIT=10
+: ${AUTOCLEAN_LIMIT:=10}
 
-# Notation Reference: https://unix.stackexchange.com/questions/122845/using-a-b-for-variable-assignment-in-scripts#comment685330_122848
-: ${CI:=0}  # Flag for if we are in CI - default to not.
-
-PYTHON_PACKAGE_REPOSITORY="pypi"
-TESTPYPI_USERNAME="nhairs-test"
-
+: ${PYTHON_PACKAGE_REPOSITORY:="pypi"}
+: ${TESTPYPI_USERNAME="$USER-test"}
 
 ## Build related
 BUILD_TIMESTAMP=$(date +%s)
@@ -63,6 +63,7 @@ SOURCE_GID=${SOURCE_GID}
 SOURCE_UID_GID=${SOURCE_UID_GID}
 BUILD_TIMESTAMP=${BUILD_TIMESTAMP}
 BUILD_VERSION=${BUILD_VERSION}
+BUILD_DIR=.tmp/dist  # default
 EOF
 
 # workaround for old docker-compose versions
@@ -73,21 +74,23 @@ cp .tmp/env .env
 ## Docker Functions
 ## -----------------------------------------------------------------------------
 function compose_build {
-    echo "🐋 Building $1"
-    docker-compose build $1 1>/dev/null
+    heading2 "🐋 Building $1"
+    if [ "$DEBUG" = 1 ]; then
+        docker-compose build $1
+    else
+        docker-compose build $1 1>/dev/null
+    fi
     echo
 }
 
 function compose_run {
-    #echo "🤔 Debugging"
-    #echo "docker-compose -f docker-compose.yml run --rm $@"
-    echo "🐋 running $1"
+    heading2 "🐋 running $@"
     docker-compose -f docker-compose.yml run --rm $@
     echo
 }
 
 function docker_clean {
-    echo "🐋 Removing ${PACKAGE_NAME} images"
+    heading2 "🐋 Removing ${PACKAGE_NAME} images"
     COUNT_IMAGES=$(docker images | grep "$PACKAGE_NAME" | wc -l)
     if [[ $COUNT_IMAGES -gt 0 ]]; then
         docker images | grep "$PACKAGE_NAME" | awk '{OFS=":"} {print $1, $2}' | xargs docker rmi
@@ -107,7 +110,7 @@ function docker_autoclean {
     if [[ $CI = 0 ]]; then
         COUNT_IMAGES=$(docker images | grep "$PACKAGE_NAME" | grep -v "$GIT_COMMIT" | wc -l)
         if [[ $COUNT_IMAGES -gt $AUTOCLEAN_LIMIT ]]; then
-            heading "Removing unused ${PACKAGE_NAME} images 🐋"
+            heading2 "Removing unused ${PACKAGE_NAME} images 🐋"
             docker_clean_unused
         fi
     fi
@@ -119,9 +122,16 @@ function heading {
     # Print a pretty heading
     # https://en.wikipedia.org/wiki/Box-drawing_character#Unicode
     echo "╓─────────────────────────────────────────────────────────────────────"
-    echo "║ $1"
+    echo "║ $@"
     echo "╙───────────────────"
     echo
+}
+
+function heading2 {
+    # Print a pretty heading-2
+    # https://en.wikipedia.org/wiki/Box-drawing_character#Unicode
+    echo "╓ $@"
+    echo "╙───────────────────"
 }
 
 ## Debug Functions
@@ -180,9 +190,11 @@ case $1 in
     "lint")
         compose_build python-common
 
-        #echo "🤔 Debugging"
-        #compose_run python-common ls -lah
-        #compose_run python-common pip list
+        if [ "$DEBUG" = 1 ]; then
+            heading2 "🤔 Debugging"
+            compose_run python-common ls -lah
+            compose_run python-common pip list
+        fi
 
         heading "black - check only 🐍"
         compose_run python-common \
@@ -235,19 +247,26 @@ case $1 in
         fi
 
         heading "upload 📜"
-        twine upload --repository "${PYTHON_PACKAGE_REPOSITORY}" dist/*
+        twine upload --repository "${PYTHON_PACKAGE_REPOSITORY}" dist/*.{whl,tar.gz}
 
         echo "📜 cleanup"
         mv dist/* dist_uploaded
         ;;
 
     "repl")
-        heading "repl 🐍"
+        heading "REPL 🐍"
         echo "import ${PACKAGE_PYTHON_NAME}" > .tmp/repl.py
         echo "print('Your package is already imported 🎉\nPress ctrl+d to exit')" >> .tmp/repl.py
 
         compose_build python-common
         compose_run python-common python3 -i .tmp/repl.py
+        ;;
+
+    "docs")
+        heading "Preview Docs 🐍"
+        compose_build python-common
+        compose_run -p 127.0.0.1:8080:8080 python-common mkdocs serve -a 0.0.0.0:8080 -w docs
+
         ;;
 
     "clean")
@@ -281,16 +300,17 @@ case $1 in
         echo "dev.sh - development utility"
         echo "Usage: ./dev.sh COMMAND"
         echo
-        echo "Commands:"
-        echo "    build     Build python packages"
-        echo "    clean     Cleanup clutter"
-        echo "    debug     Display debug / basic health check information"
-        echo "    format    Format files"
-        echo "    help      Show this text"
-        echo "    lint      Lint files. You probably want to format first."
-        echo "    upload    Upload files to pypi server"
-        echo "    repl      Open Python interactive shell with package imported"
-        echo "    test      Run unit tests"
+        echo "    build    Build python packages"
+        echo "    clean    Cleanup clutter"
+        echo "    debug    Display debug / basic health check information"
+        echo "   format    Format files"
+        echo "     help    Show this text"
+        echo "     lint    Lint files. You probably want to format first."
+        echo "   upload    Upload built files to where they are distributed from (e.g. PyPI)"
+        echo "     repl    Open Python interactive shell with the package imported"
+        echo "     test    Run unit tests"
+        echo "test-full    Run unit tests on all python versions"
+        echo "     docs    Preview docs locally"
         echo
         echo ""
 
