@@ -101,6 +101,8 @@ PACKAGE_EXTRA_DEPENDENCIES = {
         "mkdocs-material>=8.5",
         "mkdocs-awesome-pages-plugin",
         "mdx_truly_sane_lists",
+        ## REPL
+        "bpython",
     ],
 }
 

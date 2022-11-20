@@ -184,7 +184,6 @@ case $1 in
         compose_build python-common
         compose_run python-common \
             black --line-length 100 --target-version py37 setup.py src tests
-
         ;;
 
     "lint")
@@ -205,7 +204,6 @@ case $1 in
 
         heading "mypy 🐍"
         compose_run python-common mypy src tests
-
         ;;
 
     "test")
@@ -216,7 +214,6 @@ case $1 in
         compose_run python-tox tox -e py37
 
         rm -rf .tmp/dist/*
-
         ;;
 
     "test-full")
@@ -227,7 +224,6 @@ case $1 in
         compose_run python-tox tox
 
         rm -rf .tmp/dist/*
-
         ;;
 
     "build")
@@ -255,19 +251,44 @@ case $1 in
 
     "repl")
         heading "REPL 🐍"
-        echo "import ${PACKAGE_PYTHON_NAME}" > .tmp/repl.py
-        echo "print('Your package is already imported 🎉\nPress ctrl+d to exit')" >> .tmp/repl.py
+        if [[ -f "repl.py" ]]; then
+            echo "Using provided repl.py"
+            echo
+            cp repl.py > .tmp/repl.py
+        else
+            echo "Using default repl.py"
+            echo
+            cat > .tmp/repl.py <<EOF
+import ${PACKAGE_PYTHON_NAME}
+print('Your package is already imported 🎉\nPress ctrl+d to exit')
+EOF
+        fi
 
         compose_build python-common
-        compose_run python-common python3 -i .tmp/repl.py
+        compose_run python-common bpython --config bpython.ini -i .tmp/repl.py
         ;;
+
+    "run")
+        heading "Running File 🐍"
+        compose_build python-common
+        compose_run python-common python3 "${2}"
+        ;;
+
 
     "docs")
         heading "Preview Docs 🐍"
         compose_build python-common
         compose_run -p 127.0.0.1:8080:8080 python-common mkdocs serve -a 0.0.0.0:8080 -w docs
-
         ;;
+
+    #"web")
+        #heading "Running Development Server 🐍"
+        #compose_build python-common
+        #compose_run -p 127.0.0.1:8000:8080 python-common \
+            #uvicorn --host 0.0.0.0 --port 8080 \
+            #--factory product_data.rest_api.app:create_app --reload
+
+        #;;
 
     "clean")
         heading "Cleaning 📜"
@@ -282,7 +303,6 @@ case $1 in
 
         echo "cleaning .tmp"
         rm -rf .tmp/*
-
         ;;
 
     "debug")

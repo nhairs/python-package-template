@@ -10,6 +10,7 @@ TARGET=$1
 echo "Copying into ${TARGET}"
 
 FILES_TO_COPY="\
+    bpython.ini \
     dev.sh \
     docker-compose.yml \
     .dockerignore \
