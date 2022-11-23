@@ -243,7 +243,7 @@ case $1 in
         fi
 
         heading "upload 📜"
-        twine upload --repository "${PYTHON_PACKAGE_REPOSITORY}" dist/*.{whl,tar.gz}
+        twine upload --repository "${PYTHON_PACKAGE_REPOSITORY}" dist/*.whl
 
         echo "📜 cleanup"
         mv dist/* dist_uploaded
