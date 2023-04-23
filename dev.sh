@@ -302,7 +302,7 @@ case $1 in
         if [ "$SKIP_BUILD" = 0 ]; then
             compose_build python-tox
         fi
-        compose_run python-tox tox -e ${MIN_PYTHON_VERSION} --installpkg /code/dist/${BUILT_WHEEL}
+        compose_run python-tox tox -e ${MIN_PYTHON_VERSION}
 
         rm -rf .tmp/dist/*
 
@@ -315,7 +315,7 @@ case $1 in
         if [ "$SKIP_BUILD" = 0 ]; then
             compose_build python-tox
         fi
-        compose_run python-tox tox --installpkg /code/dist/${BUILT_WHEEL}
+        compose_run python-tox tox
 
         rm -rf .tmp/dist/*
 
