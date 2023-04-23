@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "python_template"
+name = "python-template"
 version = "0.0.0"
 description = "A sample python package used as a template"
 authors  = [

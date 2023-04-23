@@ -26,8 +26,8 @@ GIT_REPOSITORY=$(git remote get-url origin 2>/dev/null | cut -d '/' -f 2 | cut -
 GIT_COMMIT_SHORT=$(git rev-parse --short HEAD 2>/dev/null || echo -n 'none')
 GIT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo -n 'none')
 GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo -n 'none')
-PACKAGE_PYTHON_NAME=$(toml get --toml-path pyproject.toml project.name)
-PACKAGE_NAME=$(echo -n "$PACKAGE_PYTHON_NAME" | tr '_' '-')
+PACKAGE_NAME=$(toml get --toml-path pyproject.toml project.name)
+PACKAGE_PYTHON_NAME=$(echo -n "$PACKAGE_NAME" | tr '-' '_')
 PACKAGE_VERSION=$(toml get --toml-path pyproject.toml project.version)
 
 : ${AUTOCLEAN_LIMIT:=10}
