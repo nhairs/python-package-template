@@ -11,7 +11,8 @@ services:
         - "SOURCE_UID_GID=${SOURCE_UID_GID}"
     user: devuser
     working_dir: /code
-    env_file: .tmp/env
+    env_file:
+      - .tmp/env
     environment:
       - "PATH=/home/devuser/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games"
     volumes:
