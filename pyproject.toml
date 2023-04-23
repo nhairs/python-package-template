@@ -46,3 +46,6 @@ dev = [  # Centralise dev dependencies
     ## REPL
     "bpython",
 ]
+
+[tool.setuptools.package-data]
+python_template = ["py.typed"]
