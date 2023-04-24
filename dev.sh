@@ -268,6 +268,24 @@ function display_usage {
     echo "            test    Run unit tests"
     echo "       test-full    Run unit tests on all python versions"
     echo "          upload    Upload built files to where they are distributed from (e.g. PyPI)"
+    if [[ "$ENABLE_COMMANDS" = 1 ]]; then
+        # find extra commands
+        for COMMAND_PATH in lib/commands/*.sh; do
+            COMMAND=$(basename "$COMMAND_PATH" .sh)
+            COMMAND_HELP_PATH="lib/commands/${COMMAND}.txt"
+            if [[ ! -f "$COMMAND_HELP_PATH" ]]; then
+                printf "%16s\n" "$COMMAND"
+            else
+                COMMAND_HELP=$(head -n 1 "$COMMAND_HELP_PATH")
+                printf "%16s    %s\n" "$COMMAND" "$COMMAND_HELP"
+                if [[ "$(wc -l $COMMAND_HELP_PATH | cut -d ' ' -f 1)" -gt 1 ]]; then
+                    for HELP_LINE in $(tail -n +2 $COMMAND_HELP_PATH); do
+                        echo "                    $HELP_LINE"
+                    done
+                fi
+            fi
+        done
+    fi
     echo
     echo
 }
@@ -455,6 +473,13 @@ EOF
         ;;
 
     *)
+        if [[ "$ENABLE_COMMANDS" = 1 ]]; then
+            COMMAND_FILE="lib/commands/${1}.sh"
+            if [[ -f "$COMMAND_FILE" ]]; then
+                source "$COMMAND_FILE"
+                exit 0
+            fi
+        fi
         echo -e "\e[1;31mUnknown command \"${1}\"\e[0m"
         display_usage
         exit 255
