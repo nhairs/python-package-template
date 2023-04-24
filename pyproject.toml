@@ -33,6 +33,7 @@ dev = [  # Centralise dev dependencies
     "setuptools",
     "wheel",
     ## Formatting / Linting
+    "validate-pyproject[all]",
     "black",
     "pylint",
     "mypy",

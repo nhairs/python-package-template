@@ -320,6 +320,9 @@ case $1 in
             compose_run python-common pip list
         fi
 
+        heading "validate-pyproject 🐍"
+        compose_run python-common validate-pyproject pyproject.toml
+
         heading "black - check only 🐍"
         compose_run python-common \
             black --line-length 100 --target-version ${MIN_PYTHON_VERSION} --check --diff $SOURCE_FILES
