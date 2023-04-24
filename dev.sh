@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# NOTICE: dev.sh and it's related files are
+# Copyright (c) 2020 Nicholas Hairs
+# Licenced under The MIT Licence
+# Source: https://github.com/nhairs/python-package-template
+
 # Notes:
 # - use shellcheck for bash linter (https://github.com/koalaman/shellcheck)
 
@@ -38,6 +43,8 @@ PACKAGE_VERSION=$(toml get --toml-path pyproject.toml project.version)
 ## Python Project Related
 ## -----------------------------------------------------------------------------
 # You may want to customise these for your project
+# TODO: this potentially should be moved to manifest.env so that projects can easily
+# customise the main dev.sh
 SOURCE_FILES="src tests"
 MIN_PYTHON_VERSION="py37"
 
@@ -60,12 +67,12 @@ BUILT_WHEEL="${PACKAGE_PYTHON_NAME}-${BUILD_VERSION}-py3-none-any.whl"
 
 ## Load manifests
 ## -----------------------------------------------------------------------------
-if [ -f "lib/manifest.env" ]; then
+if [[ -f "lib/manifest.env" ]]; then
     echo "⚙️  loading lib/manifest.env"
     source lib/manifest.env
 fi
 
-if [ -f "locals.env" ]; then
+if [[ -f "locals.env" ]]; then
     echo "⚙️  loading locals.env"
     source locals.env
 fi
@@ -78,7 +85,9 @@ if [ ! -d .tmp ]; then
     mkdir .tmp
 fi
 
-echo "⚙️  writing .tmp/env"
+if [[ "$DEBUG" -gt 0 ]]; then
+    echo "⚙️  writing .tmp/env"
+fi
 cat > .tmp/env <<EOF
 PACKAGE_NAME=${PACKAGE_NAME}
 PACKAGE_PYTHON_NAME=${PACKAGE_PYTHON_NAME}
@@ -107,10 +116,10 @@ cp .tmp/env .env
 ## -----------------------------------------------------------------------------
 function compose_build {
     heading2 "🐋 Building $1"
-    if [ "$CI" = 1 ]; then
+    if [[ "$CI" = 1 ]]; then
         docker compose build --progress plain $1
 
-    elif [ "$DEBUG" = 1 ]; then
+    elif [[ "$DEBUG" -gt 0 ]]; then
         docker compose build --progress plain $1
 
     else
@@ -129,12 +138,12 @@ function docker_clean {
     heading2 "🐋 Removing $PACKAGE_NAME images"
     IMAGES=$(docker images --filter "reference=${PACKAGE_NAME}-asdf*" | tail -n +2)
     COUNT_IMAGES=$(echo -n "$IMAGES" | wc -l)
-    if [ "$DEBUG" = 1 ]; then
+    if [[ "$DEBUG" -gt 0 ]]; then
         echo "IMAGES=$IMAGES"
         echo "COUNT_IMAGES=$COUNT_IMAGES"
     fi
 
-    if [[ $COUNT_IMAGES -gt 0 ]]; then
+    if [[ "$COUNT_IMAGES" -gt 0 ]]; then
         docker images | grep "$PACKAGE_NAME" | awk '{OFS=":"} {print $1, $2}' | xargs -t docker rmi
     fi
 }
@@ -149,8 +158,8 @@ function docker_clean_unused {
 }
 
 function docker_autoclean {
-    if [[ $CI = 0 ]]; then
-        if [ "$DEBUG" = 1 ]; then
+    if [[ "$CI" = 0 ]]; then
+        if [[ "$DEBUG" -gt 0 ]]; then
             heading2 "🐋 determining if need to clean"
         fi
 
@@ -160,9 +169,9 @@ function docker_autoclean {
             grep -v "$GIT_COMMIT" ;\
             /bin/true
         )
-        COUNT_IMAGES=$(echo -n "$IMAGES" | wc -l)
+        COUNT_IMAGES=$(echo "$IMAGES" | wc -l)
 
-        if [ "$DEBUG" = 1 ]; then
+        if [[ "$DEBUG" -gt 0 ]]; then
             echo "IMAGES=${IMAGES}"
             echo "COUNT_IMAGES=${COUNT_IMAGES}"
         fi
@@ -215,9 +224,9 @@ function check_pyproject_toml {
 ## Command Functions
 ## -----------------------------------------------------------------------------
 function command_build {
-    if [ -z $1 ] | [ "$1" = "dist" ]; then
+    if [[ -z "$1" || "$1" == "dist" ]]; then
         BUILD_DIR="dist"
-    elif [ "$1" = "tmp" ]; then
+    elif [[ "$1" == "tmp" ]]; then
         BUILD_DIR=".tmp/dist"
     else
         return 1
@@ -225,7 +234,7 @@ function command_build {
 
     # TODO: unstashed changed guard
 
-    if [ ! -d $BUILD_DIR ]; then
+    if [[ ! -d "$BUILD_DIR" ]]; then
         heading "setup 📜"
         mkdir $BUILD_DIR
     fi
@@ -234,7 +243,7 @@ function command_build {
     echo "BUILD_DIR=${BUILD_DIR}" >> .tmp/env
 
     heading "build 🐍"
-    if [ "$SKIP_BUILD" = 0 ]; then
+    if [[ "$SKIP_BUILD" = 0 ]]; then
         compose_build python-build
     fi
     compose_run python-build
@@ -268,12 +277,12 @@ function display_usage {
 case $1 in
 
     "format")
-        if [[ $CI -gt 0 ]]; then
+        if [[ $CI = 1 ]]; then
             echo "ERROR! Do not run format in CI!"
             exit 250
         fi
         heading "black 🐍"
-        if [ "$SKIP_BUILD" = 0 ]; then
+        if [[ "$SKIP_BUILD" = 0 ]]; then
             compose_build python-common
         fi
 
@@ -283,11 +292,11 @@ case $1 in
         ;;
 
     "lint")
-        if [ "$SKIP_BUILD" = 0 ]; then
+        if [[ "$SKIP_BUILD" = 0 ]]; then
             compose_build python-common
         fi
 
-        if [ "$DEBUG" = 1 ]; then
+        if [[ "$DEBUG" -gt 0 ]]; then
             heading2 "🤔 Debugging"
             compose_run python-common ls -lah
             compose_run python-common pip list
@@ -309,7 +318,7 @@ case $1 in
         command_build tmp
 
         heading "tox 🐍"
-        if [ "$SKIP_BUILD" = 0 ]; then
+        if [[ "$SKIP_BUILD" = 0 ]]; then
             compose_build python-tox
         fi
         compose_run python-tox tox -e ${MIN_PYTHON_VERSION}
@@ -322,7 +331,7 @@ case $1 in
         command_build tmp
 
         heading "tox 🐍"
-        if [ "$SKIP_BUILD" = 0 ]; then
+        if [[ "$SKIP_BUILD" = 0 ]]; then
             compose_build python-tox
         fi
         compose_run python-tox tox
@@ -371,7 +380,7 @@ print('Your package is already imported 🎉\nPress ctrl+d to exit')
 EOF
         fi
 
-        if [ "$SKIP_BUILD" = 0 ]; then
+        if [[ "$SKIP_BUILD" = 0 ]]; then
             compose_build python-common
         fi
         compose_run python-common bpython --config bpython.ini -i .tmp/repl.py
@@ -380,7 +389,7 @@ EOF
 
     "run")
         heading "Running 🐍"
-        if [ "$SKIP_BUILD" = 0 ]; then
+        if [[ "$SKIP_BUILD" = 0 ]]; then
             compose_build python-common
         fi
         compose_run python-common "${@:2}"
@@ -389,7 +398,7 @@ EOF
 
     "docs")
         heading "Preview Docs 🐍"
-        if [ "$SKIP_BUILD" = 0 ]; then
+        if [[ "$SKIP_BUILD" = 0 ]]; then
             compose_build python-common
         fi
         compose_run -p 127.0.0.1:${PORT}:8080 python-common mkdocs serve -a 0.0.0.0:8080 -w docs
