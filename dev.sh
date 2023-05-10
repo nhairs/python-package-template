@@ -46,7 +46,7 @@ PACKAGE_VERSION=$(toml get --toml-path pyproject.toml project.version)
 # TODO: this potentially should be moved to manifest.env so that projects can easily
 # customise the main dev.sh
 SOURCE_FILES="src tests"
-MIN_PYTHON_VERSION="py37"
+PYTHON_MIN_VERSION="py37"
 
 ## Build related
 ## -----------------------------------------------------------------------------
@@ -60,7 +60,12 @@ else
     #BUILD_VERSION="${PACKAGE_VERSION}+${GIT_COMMIT_SHORT}.${BUILD_TIMESTAMP}"
 
     # Use PEP 440 non-compliant versions since we know it works
-    BUILD_VERSION="${PACKAGE_VERSION}.${GIT_COMMIT_SHORT}"
+    #BUILD_VERSION="${PACKAGE_VERSION}.${GIT_COMMIT_SHORT}"
+
+    # PEP 440 compliant `.devM` versioning using timestamps
+    # Multiple users on the same branch may interfere with eachother
+    # But this is fine for now...
+    BUILD_VERSION="${PACKAGE_VERSION}.dev${BUILD_TIMESTAMP}"
 fi
 
 BUILT_WHEEL="${PACKAGE_PYTHON_NAME}-${BUILD_VERSION}-py3-none-any.whl"
@@ -243,9 +248,9 @@ function command_build {
     echo "BUILD_DIR=${BUILD_DIR}" >> .tmp/env
 
     heading "build 🐍"
-    if [[ "$SKIP_BUILD" = 0 ]]; then
-        compose_build python-build
-    fi
+    # Note: we always run compose_build because we copy the package source code to
+    # the container so we can modify it without affecting local source code.
+    compose_build python-build
     compose_run python-build
 }
 
@@ -305,7 +310,7 @@ case $1 in
         fi
 
         compose_run python-common \
-            black --line-length 100 --target-version ${MIN_PYTHON_VERSION} $SOURCE_FILES
+            black --line-length 100 --target-version ${PYTHON_MIN_VERSION} $SOURCE_FILES
 
         ;;
 
@@ -325,7 +330,7 @@ case $1 in
 
         heading "black - check only 🐍"
         compose_run python-common \
-            black --line-length 100 --target-version ${MIN_PYTHON_VERSION} --check --diff $SOURCE_FILES
+            black --line-length 100 --target-version ${PYTHON_MIN_VERSION} --check --diff $SOURCE_FILES
 
         heading "pylint 🐍"
         compose_run python-common pylint -j 4 --output-format=colorized $SOURCE_FILES
@@ -342,7 +347,7 @@ case $1 in
         if [[ "$SKIP_BUILD" = 0 ]]; then
             compose_build python-tox
         fi
-        compose_run python-tox tox -e ${MIN_PYTHON_VERSION}
+        compose_run python-tox tox -e ${PYTHON_MIN_VERSION}
 
         rm -rf .tmp/dist/*
 

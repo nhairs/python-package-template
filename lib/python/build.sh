@@ -1,18 +1,14 @@
 #!/bin/bash
 
-### CONSTANTS
-### ============================================================================
-BUILD_DATETIME="datetime.datetime.utcfromtimestamp(${BUILD_TIMESTAMP})"
-
 ### FUNCTIONS
 ### ============================================================================
 function replace_version_var {
     if [ $3 == 1 ]; then
         # Quotes
-        sed -i "s/^${1} = \"\"/${1} = \"${2}\"/" "src/${PACKAGE_PYTHON_NAME}/_version.py"
+        sed -i "s/^${1} = .*/${1} = \"${2}\"/" "src/${PACKAGE_PYTHON_NAME}/_version.py"
     else
         # No Quotes
-        sed -i "s/^${1} = \"\"/${1} = ${2}/" "src/${PACKAGE_PYTHON_NAME}/_version.py"
+        sed -i "s/^${1} = .*/${1} = ${2}/" "src/${PACKAGE_PYTHON_NAME}/_version.py"
     fi
 }
 
@@ -43,23 +39,22 @@ replace_version_var BUILD_GIT_HASH "${GIT_COMMIT}" 1
 replace_version_var BUILD_GIT_HASH_SHORT "${GIT_COMMIT_SHORT}" 1
 replace_version_var BUILD_GIT_BRANCH "${GIT_BRANCH}" 1
 replace_version_var BUILD_TIMESTAMP "${BUILD_TIMESTAMP}" 0
-replace_version_var BUILD_DATETIME "${BUILD_DATETIME}" 0
 
-head -n 22 "src/${PACKAGE_PYTHON_NAME}/_version.py" | tail -n 7
+echo "[computed _version.py]"
+#head -n 22 "src/${PACKAGE_PYTHON_NAME}/_version.py" | tail -n 7
+cat "src/${PACKAGE_PYTHON_NAME}/_version.py"
+
 
 if [ "$PYTHON_PACKAGE_REPOSITORY" == "testpypi" ]; then
     echo "MODIFYING PACKAGE_NAME"
     # Replace name suitable for test.pypi.org
     # https://packaging.python.org/tutorials/packaging-projects/#creating-setup-py
-    sed -i "s/^PACKAGE_NAME = .*/PACKAGE_NAME = \"${PACKAGE_NAME}-${TESTPYPI_USERNAME}\"/" setup.py
-    grep "^PACKAGE_NAME = " setup.py
-
+    toml set --toml-path=pyproject.toml project.name "${PACKAGE_NAME}-${TESTPYPI_USERNAME}"
     mv "src/${PACKAGE_PYTHON_NAME}" "src/${PACKAGE_PYTHON_NAME}_$(echo -n $TESTPYPI_USERNAME | tr '-' '_')"
 fi
 
 if [[ "$GIT_BRANCH" != "master" && "$GIT_BRANCH" != "main" ]]; then
-    sed -i "s/^PACKAGE_VERSION = .*/PACKAGE_VERSION = \"${BUILD_VERSION}\"/" setup.py
-    grep "^PACKAGE_VERSION = " setup.py
+    toml set --toml-path=pyproject.toml project.version "${BUILD_VERSION}"
 fi
 
 ## Build

@@ -28,10 +28,8 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dev = [  # Centralise dev dependencies
-    ## Building Python Package
-    "setuptools",
-    "wheel",
+dev = [
+    ### dev.sh dependencies
     ## Formatting / Linting
     "validate-pyproject[all]",
     "black",

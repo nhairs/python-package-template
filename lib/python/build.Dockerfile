@@ -13,12 +13,11 @@ RUN mkdir -p /code/src \
 ## ^^ copied from common.Dockerfile - try to keep in sync fo caching
 
 # Base stuff
-ADD . /code
+RUN su - devuser -c "pip install --user build toml-cli"
 
+ADD . /code
 RUN chown -R ${SOURCE_UID_GID} /code # needed twice because added files
 
-RUN ls -lah /code
-
-RUN su - devuser -c "cd /code && pip install --user build"
+#RUN ls -lah /code
 
 CMD echo "docker-compose build python-build complete 🎉"
