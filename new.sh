@@ -16,9 +16,11 @@ FILES_TO_COPY="\
     .dockerignore \
     .gitignore \
     lib \
+    LICENCE \
+    MANIFEST.in \
     mypy.ini \
     pylintrc \
-    setup.py \
+    pyproject.toml \
     src \
     tests \
     tox.ini \

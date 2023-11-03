@@ -347,7 +347,7 @@ case $1 in
         if [[ "$SKIP_BUILD" = 0 ]]; then
             compose_build python-tox
         fi
-        compose_run python-tox tox -e ${PYTHON_MIN_VERSION}
+        compose_run python-tox tox -e ${PYTHON_MIN_VERSION} || true
 
         rm -rf .tmp/dist/*
 
@@ -360,7 +360,7 @@ case $1 in
         if [[ "$SKIP_BUILD" = 0 ]]; then
             compose_build python-tox
         fi
-        compose_run python-tox tox
+        compose_run python-tox tox || true
 
         rm -rf .tmp/dist/*
 

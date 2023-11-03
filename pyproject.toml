@@ -28,6 +28,9 @@ classifiers = [
     "Development Status :: 3 - Alpha",  # Default to Alpha.
 ]
 
+[project.urls]
+homepage = "https://github.com/nhairs/python-package-template"
+
 [project.optional-dependencies]
 dev = [
     ### dev.sh dependencies
@@ -38,13 +41,11 @@ dev = [
     "mypy",
     ## Testing
     "pytest",
-    ## Docs
-    "mkdocs",
-    "mkdocs-material>=8.5",
-    "mkdocs-awesome-pages-plugin",
-    "mdx_truly_sane_lists",
     ## REPL
     "bpython",
+]
+
+docs = [
 ]
 
 [tool.setuptools.package-data]
